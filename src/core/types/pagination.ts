@@ -1,0 +1,18 @@
+// temporary file because this type will go to the lib
+export type PaginationDto = {
+  page: number
+  size: number
+  orderBy?: string
+  orderDirection?: 'asc' | 'desc'
+  createdAtDirection?: 'asc' | 'desc'
+}
+
+export type PaginationResponseDto = {
+  page: number
+  size: number
+  totalItems: number
+  totalPages: number
+  orderBy?: string
+  orderDirection?: 'asc' | 'desc'
+  createdAtDirection?: 'asc' | 'desc'
+}
