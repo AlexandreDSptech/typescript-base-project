@@ -4,25 +4,30 @@ import { CrudRepository } from "./crud-repository-interface";
 import { PaginationDto } from "../types/pagination";
 
 export class MongodbCrudRepository<T extends Document, ID> implements CrudRepository<T, ID> {
-  private collection: Collection<T>;
+  constructor(
+    private readonly collectionName: string,
+  ) {}
 
-  constructor(private readonly collectionName: string) {
-    const db = MongoDBConnection.getInstance().getDatabase();
-    this.collection = db.collection<T>(this.collectionName);
+  private getCollection(env: string): Collection<T> {
+    const db = MongoDBConnection.getInstance().getDatabase(env);
+    return db.collection<T>(this.collectionName);
   }
 
-  async insert(item: T): Promise<T> {
-    const result = await this.collection.insertOne(item as any);
+  async insert(item: T, env: string): Promise<T> {
+    const collection = this.getCollection(env);
+    const result = await collection.insertOne(item as any);
     return { ...item, _id: result.insertedId } as T;
   }
 
-  async findById(id: ID): Promise<T | null> {
+  async findById(id: ID, env: string): Promise<T | null> {
+    const collection = this.getCollection(env);
     const filter = { _id: new ObjectId(id as string) } as Filter<T>;
-    const result = await this.collection.findOne(filter);
+    const result = await collection.findOne(filter);
     return result as T | null;
   }
 
-  private async executeFind(filter: Partial<T> & PaginationDto): Promise<T[]> {
+  private async executeFind(filter: Partial<T> & PaginationDto, env: string): Promise<T[]> {
+    const collection = this.getCollection(env);
     const { page = 1, size = 10, orderBy, orderDirection = 'asc', createdAtDirection, ...queryFilter } = filter;
     
     const skip = (page - 1) * size;
@@ -36,7 +41,7 @@ export class MongodbCrudRepository<T extends Document, ID> implements CrudReposi
       sort.createdAt = createdAtDirection === 'asc' ? 1 : -1;
     }
 
-    const result = await this.collection
+    const result = await collection
       .find(queryFilter as Filter<T>)
       .sort(sort)
       .skip(skip)
@@ -46,20 +51,21 @@ export class MongodbCrudRepository<T extends Document, ID> implements CrudReposi
     return result as T[];
   }
 
-  async find(filter: Partial<T> & PaginationDto): Promise<T> {
-    const result = await this.executeFind(filter);
+  async find(filter: Partial<T> & PaginationDto, env: string): Promise<T> {
+    const result = await this.executeFind(filter, env);
     return result[0] as T;
   }
 
-  async findAll(filter: Partial<T> & PaginationDto): Promise<Array<T>> {
-    return await this.executeFind(filter);
+  async findAll(filter: Partial<T> & PaginationDto, env: string): Promise<Array<T>> {
+    return await this.executeFind(filter, env);
   }
 
-  async update(id: ID, item: Partial<T>): Promise<T> {
+  async update(id: ID, item: Partial<T>, env: string): Promise<T> {
+    const collection = this.getCollection(env);
     const filter = { _id: new ObjectId(id as string) } as Filter<T>;
     const updateDoc = { $set: item };
     
-    const result = await this.collection.findOneAndUpdate(
+    const result = await collection.findOneAndUpdate(
       filter,
       updateDoc,
       { returnDocument: 'after' }
@@ -72,25 +78,28 @@ export class MongodbCrudRepository<T extends Document, ID> implements CrudReposi
     return result as T;
   }
 
-  async delete(id: ID): Promise<void> {
+  async delete(id: ID, env: string): Promise<void> {
+    const collection = this.getCollection(env);
     const filter = { _id: new ObjectId(id as string) } as Filter<T>;
-    const result = await this.collection.deleteOne(filter);
+    const result = await collection.deleteOne(filter);
     
     if (result.deletedCount === 0) {
       throw new Error(`Item com id ${id} não encontrado`);
     }
   }
 
-  async query<Q>(query: Object | Array<any> | string): Promise<Q> {
+  async query<Q>(query: Object | Array<any> | string, env: string): Promise<Q> {
+    const collection = this.getCollection(env);
+    
     // Se for um array, trata como aggregation pipeline
     if (Array.isArray(query)) {
-      const result = await this.collection.aggregate(query).toArray();
+      const result = await collection.aggregate(query).toArray();
       return result as Q;
     }
     
     // Se for um objeto, trata como filtro de find
     if (typeof query === 'object' && query !== null) {
-      const result = await this.collection.find(query as Filter<T>).toArray();
+      const result = await collection.find(query as Filter<T>).toArray();
       return result as Q;
     }
     
@@ -99,10 +108,10 @@ export class MongodbCrudRepository<T extends Document, ID> implements CrudReposi
       try {
         const parsedQuery = JSON.parse(query);
         if (Array.isArray(parsedQuery)) {
-          const result = await this.collection.aggregate(parsedQuery).toArray();
+          const result = await collection.aggregate(parsedQuery).toArray();
           return result as Q;
         }
-        const result = await this.collection.find(parsedQuery as Filter<T>).toArray();
+        const result = await collection.find(parsedQuery as Filter<T>).toArray();
         return result as Q;
       } catch (error) {
         throw new Error('Query string inválida. Deve ser um JSON válido.');

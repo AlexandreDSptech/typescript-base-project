@@ -2,7 +2,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import * as dotenv from 'dotenv'
 import { mongoConnection } from '../db/mongodb'
-import { PersonController } from '../../app/person/person-controller';
+import { personRoutes } from '../../app/person/person-routes'
 
 dotenv.config()
 
@@ -24,25 +24,8 @@ async function start() {
       return payload;
     })
 
-    // 4. Instanciar controllers DEPOIS da conexão
-    const personController = new PersonController()
-
-    // 5. Registrar rotas
-    server.post("/people", (request: any, response) => {
-      return personController.insert(request.body)
-    })
-    server.get("/people", (request: any, response) => {
-      return personController.findAll(request.query || {})
-    })
-    server.get("/people/:id", (request: any, response) => {
-      return personController.findById(request.params.id)
-    })
-    server.delete("/people/:id", (request: any, response) => {
-      return personController.delete(request.params.id)
-    })
-    // server.patch("/people/:id",(request:any,response)=>{
-    //     return personController.update(request)
-    // })
+    // 4. Registrar rotas
+    await server.register(personRoutes, { prefix: '/people' })
 
     // 6. Iniciar servidor
     await server.listen({

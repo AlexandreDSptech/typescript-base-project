@@ -21,7 +21,6 @@ class MongoDBConnection {
 
       this.client = new MongoClient(process.env.MONGODB_URI || '');
       await this.client.connect();
-      this.db = this.client.db('project');
       
       console.log('Conectado ao MongoDB com sucesso');
     } catch (error) {
@@ -44,15 +43,35 @@ class MongoDBConnection {
     }
   }
 
-  getDatabase(): Db {
+  getClient(): MongoClient {
+    if (!this.client) {
+      throw new Error('Cliente MongoDB não está conectado');
+    }
+    return this.client;
+  }
+
+  getDatabase(env?: string): Db {
+    if (!this.client) {
+      throw new Error('Cliente MongoDB não está conectado');
+    }
+    if (env) {
+      return this.client.db(env);
+    }
     if (!this.db) {
       throw new Error('Banco de dados não está conectado');
     }
     return this.db;
   }
 
+  setDatabase(env: string) {
+    if (!this.client) {
+      throw new Error('Cliente MongoDB não está conectado');
+    }
+    this.db = this.client.db(env);
+  }
+
   isConnected(): boolean {
-    return this.client !== null && this.db !== null;
+    return this.client !== null;
   }
 
   setupGracefulShutdown(): void {
