@@ -1,6 +1,4 @@
-import { Entity } from "../../core/types/entity"
+import { Entity } from '../../core/types/entity'
+import { personOrm } from './person-validator'
 
-export type Person = {
-  name: string
-  age: number
-} & Entity
+export type Person = ReturnType<typeof personOrm.getType> & Entity

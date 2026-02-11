@@ -1,6 +1,6 @@
-import MongoDBConnection from './mongodb-connection';
+import MongoDBConnection from './mongodb-connection'
 
-const mongoConnection = MongoDBConnection.getInstance();
+const mongoConnection = MongoDBConnection.getInstance()
 
-export { mongoConnection };
-export default MongoDBConnection;
+export { mongoConnection }
+export default MongoDBConnection

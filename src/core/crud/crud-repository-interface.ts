@@ -1,4 +1,4 @@
-import { PaginationDto, PaginationResponseDto } from "../types/pagination"
+import { PaginationDto, PaginationResponseDto } from '../types/pagination'
 
 export interface CrudRepository<T, ID> {
   insert(item: T, env: string): Promise<T>
